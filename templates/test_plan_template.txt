@@ -1,0 +1,32 @@
+TEST PLAN
+
+1. Objective
+Define the purpose of testing.
+
+2. Scope
+In Scope:
+Out of Scope:
+
+3. Test Approach
+Manual, API, DB validation.
+
+4. Test Types
+Functional, Negative, Edge, Regression, API, DB.
+
+5. Test Environment
+OS, Browser/App, Build version.
+
+6. Test Data Strategy
+Valid, invalid, boundary data.
+
+7. Entry Criteria
+Build available, test data ready.
+
+8. Exit Criteria
+All critical test cases executed.
+
+9. Risks & Mitigation
+Dependencies, environment issues.
+
+10. Assumptions
+APIs and DB are accessible.

@@ -1,0 +1,7 @@
+Table: users
+Columns:
+- id (PK)
+- name
+- email
+- phone
+- updated_at

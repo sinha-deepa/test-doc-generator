@@ -1,0 +1,101 @@
+
+ERROR: API QUOTA EXCEEDED
+
+Your code and prompt are correct.
+Your OpenAI account currently has no usable quota.
+
+👉 Temporary workaround:
+- Use the SAME prompt in:
+  • ChatGPT UI
+  • GitHub Copilot Chat (inside IntelliJ)
+
+👉 Permanent fix:
+- Enable billing on OpenAI account (even $5 is enough)
+
+
+
+Test Plan
+1. Objective
+Verify that users can update their profile fields (name, email,
+phone) via the Profile screen and API, with correct client/server validations, proper UI feedback, and accurate persistence in the users table.
+2. Scope
+In Scope: UI profile update flow, client-side and server-side validation for email and phone, API request/response validation, database verification of updated values and updated_at. Out of Scope: Password or authentication changes, avatar/uploads, third-party verification, email uniqueness/enforcement beyond basic validation.
+Test Approach Manual UI tests, API tests using tools like Postman, and DB validation queries against the users table.
+Test Types Functional, Negative, Edge, Regression, API, DB.
+Test Environment OS: macOS, Windows, Linux; Browsers: Chrome, Firefox, Safari; App/Build: latest QA build or dev build; Backend: QA API endpoint, test DB instance.
+Test Data Strategy Use valid, invalid, and boundary data: typical valid names, emails, phone numbers; invalid email formats, phone with letters, max/min lengths, blank values, special characters, XSS payloads.
+Entry Criteria Build deployed to QA, Profile screen accessible, API endpoint reachable, test user accounts present, DB accessible for verification.
+Exit Criteria All high priority test cases executed with pass results; critical defects resolved or mitigated; no regressions for previously fixed profile functionality.
+Risks & Mitigation
+Risk: Lacking QA test data — Mitigation: Provision dedicated test users.
+Risk: DB or API downtime — Mitigation: Use a staging DB snapshot or mock service.
+Risk: Incomplete validation rules — Mitigation: Confirm validation rules with product/engineering.
+Assumptions APIs and DB are accessible; profile update endpoint authenticates user and identifies target users.id; updated fields are name, email, phone, and updated_at is set on success.
+
+Test Cases
+Test Case ID: TC-01 Title: Update all fields with valid data (UI) Description: Verify user can update name, email, and phone together using Profile UI with valid inputs. Preconditions: User logged in; Profile screen open; existing test user present. Test Steps:
+Enter valid name "Alice Smith".
+Enter valid email "alice.smith@example.com".
+Enter valid phone "+1-555-123-4567".
+Click Save. Test Data: name="Alice Smith", email="alice.smith@example.com", phone="+1-555-123-4567" Expected Result: Success message displayed; API returns 200; users table row for user reflects new values and updated_at updated. Priority: High Type: Functional
+Test Case ID: TC-02 Title: Update single field (email) (UI + DB) Description: Verify updating only the email updates DB and leaves other fields unchanged. Preconditions: User logged in; known existing name and phone. Test Steps:
+Change email to "user.new@example.org".
+Click Save. Test Data: email="user.new@example.org" Expected Result: Success message; API 200; users.email updated to new value; name and phone unchanged; updated_at updated. Priority: Medium Type: Functional
+Test Case ID: TC-03 Title: Reject invalid email formats (UI validation) Description: Verify client-side validation blocks malformed emails. Preconditions: Profile screen open. Test Steps:
+Enter email "invalid-email".
+Click Save. Test Data: email="invalid-email" Expected Result: Inline validation message displayed; Save action prevented; no API call or API returns 400 if client lets it through. Priority: High Type: Negative
+Test Case ID: TC-04 Title: Reject invalid email formats (server validation / API) Description: Verify server rejects malformed email payload with appropriate status and error. Preconditions: API reachable; authenticated user token. Test Steps:
+Send API request PATCH /profile (or endpoint) with email="missing@domain" and valid name/phone. Test Data: email="missing@domain" Expected Result: API returns 400 and error body indicating invalid email; DB unchanged. Priority: High Type: API
+Test Case ID: TC-05 Title: Reject phone with letters (UI) Description: Verify phone field rejects alphanumeric input. Preconditions: Profile screen open. Test Steps:
+Enter phone "123ABC7890".
+Click Save. Test Data: phone="123ABC7890" Expected Result: Inline validation error; Save prevented; if API invoked, returns 400. Priority: High Type: Negative
+Test Case ID: TC-06 Title: Accept diverse valid phone formats (edge) Description: Verify acceptance of phone formats e.g., international, parentheses, spaces, dashes. Preconditions: Profile screen open. Test Steps:
+Test phone values: "+44 7700 900123", "(555) 123-4567", "5551234567".
+Click Save for each. Test Data: multiple phone formats Expected Result: Each valid format accepted; API 200; DB stores normalized or raw phone as per spec; updated_at updated. Priority: Medium Type: Edge
+Test Case ID: TC-07 Title: Empty required fields handling (UI) Description: Verify behavior when required fields are empty. Preconditions: Profile screen open; determine which fields are required (assume email required). Test Steps:
+Clear email field.
+Click Save. Test Data: email="" Expected Result: Inline error indicating field required; Save prevented; no API call or API 400 if called. Priority: High Type: Negative
+Test Case ID: TC-08 Title: Very long input for name (boundary) Description: Verify system handles name at maximum allowed length and rejects beyond limit. Preconditions: Max length defined (assume 256 chars). Test Steps:
+Enter name with 256 characters; click Save.
+Enter name with 257 characters; click Save. Test Data: name=256-char string, name=257-char string Expected Result: 256 accepted (API 200, DB stores value); 257 rejected with validation error (UI or API 400). Priority: Medium Type: Boundary
+Test Case ID: TC-09 Title: SQL/Injection and XSS protection (security) Description: Verify inputs with SQL or script content are sanitized/escaped and not executed. Preconditions: Profile screen open; test DB accessible. Test Steps:
+Enter name "Robert'); DROP TABLE users;--" and email "<script><#data #data="alert(1)"></#data></script>@example.com".
+Click Save. Test Data: malicious strings Expected Result: Input stored as literal sanitized text or rejected; no DB schema damage; no script execution on profile view; API returns 400 or 200 with sanitized storage. Priority: High Type: Negative
+Test Case ID: TC-10 Title: No-op update (no changes) Description: Verify saving without changes behaves gracefully. Preconditions: Load profile with current values. Test Steps:
+Click Save without modifying any fields. Test Data: none Expected Result: Either no-op with message "No changes" or success; DB updated_at unchanged; no unintended updates. Priority: Low Type: Functional
+Test Case ID: TC-11 Title: Concurrent updates conflict handling (edge) Description: Verify behavior when two sessions update profile simultaneously. Preconditions: Two active sessions for same user. Test Steps:
+Session A changes name to "A".
+Session B changes phone to "B".
+Both save nearly concurrently. Test Data: differing concurrent changes Expected Result: Last write persisted; no corruption; both changes reflected according to save order; no errors. Priority: Medium Type: Edge
+Test Case ID: TC-12 Title: API payload validation and response schema (API) Description: Verify API accepts expected JSON fields and returns documented response schema. Preconditions: API docs available; auth token ready. Test Steps:
+Send well-formed PATCH/PUT with JSON {name,email,phone}.
+Validate response status, body keys, and types. Test Data: {"name":"N","email":"n@example.com","phone":"5555555555"} Expected Result: 200 OK, response contains success flag/message and updated user object; content-type application/json. Priority: High Type: API
+Test Case ID: TC-13 Title: DB updated_at timestamp correctness (DB) Description: Verify updated_at is updated on save and reflects recent change. Preconditions: DB accessible; known initial updated_at. Test Steps:
+Save profile with a change.
+Query users.updated_at. Test Data: any valid change Expected Result: updated_at timestamp is later than previous value and near current time. Priority: High Type: DB
+Test Case ID: TC-14 Title: Partial invalid payload (mixed valid/invalid) (API) Description: Verify API rejects payload where one field invalid while others valid. Preconditions: API reachable. Test Steps:
+Send request with valid name/phone and invalid email "a@". Test Data: name valid, phone valid, email="a@" Expected Result: API returns 400 with details identifying invalid email; DB unchanged. Priority: High Type: API
+Test Case ID: TC-15 Title: International characters and Unicode support (functional/edge) Description: Verify name and email local-part support Unicode characters where allowed. Preconditions: Profile screen open; backend supports Unicode. Test Steps:
+Enter name "José Álvarez".
+Enter email "用户@例子.测试" (if system supports internationalized email) or "josé@example.com".
+Save. Test Data: Unicode name/email variations Expected Result: Accepted if supported; API 200 and DB stores Unicode correctly; UI displays characters properly. Priority: Medium Type: Edge
+Test Case ID: TC-16 Title: Format normalization check (DB) Description: Verify phone/email normalization rules (if defined) such as trimming spaces and lowercasing email. Preconditions: Specification indicates normalization rules. Test Steps:
+Enter email " USER@Example.COM " and phone " 555-123-4567 ".
+Save. Test Data: padded/uppercased values Expected Result: DB stores normalized email "user@example.com" and trimmed phone per spec; updated_at updated. Priority: Medium Type: DB
+Test Case ID: TC-17 Title: Error message localization and clarity (UI) Description: Verify validation and error messages are clear and actionable. Preconditions: Profile UI in test language. Test Steps:
+Trigger invalid email and phone errors. Test Data: email="bad", phone="abc" Expected Result: Specific messages like "Enter a valid email address" and "Phone number must contain only digits" shown. Priority: Low Type: Functional
+Test Case ID: TC-18 Title: Recover from server error (resilience) Description: Verify UI handles 500 server errors gracefully with retry option. Preconditions: Ability to simulate server 500. Test Steps:
+Simulate server 500 on save.
+Click Save. Test Data: valid inputs Expected Result: UI shows error message "Unable to save profile, please try again" and allows retry; no partial DB update. Priority: Medium Type: Negative
+Test Case ID: TC-19 Title: Audit of immutable fields and ID mapping (DB) Description: Verify update affects correct users.id row and only intended columns. Preconditions: Multiple users exist. Test Steps:
+Update profile for test user.
+Confirm only row with that id changed and only name, email, phone, updated_at modified. Test Data: valid inputs Expected Result: Only target row updated; no other rows modified. Priority: High Type: DB
+Test Case ID: TC-20 Title: Regression: existing profile flows unaffected (regression) Description: Run a subset of core profile tests to ensure no regression. Preconditions: Baseline tests available. Test Steps:
+Execute TC-01, TC-03, TC-05, TC-13. Test Data: as per referenced cases Expected Result: No regressions; all pass. Priority: High Type: Regression
+
+
+Test Case ID: TC-01 Title: Update all fields with valid data (UI) Description: Verify user can update name, email, and phone together using Profile UI with valid inputs. Preconditions: User logged in; Profile screen open; existing test user present. Test Steps:
+Enter valid name "Alice Smith".
+Enter valid email "alice.smith@example.com".
+Enter valid phone "+1-555-123-4567".
+Click Save. Test Data: name="Alice Smith", email="alice.smith@example.com", phone="+1-555-123-4567" Expected Result: Success message displayed; API returns 200; users table row for user reflects new values and updated_at updated. Priority: High Type: Functional

@@ -1,0 +1,4 @@
+Feature: User Profile Update
+
+Users should be able to update name, email, and phone number.
+Validations should be applied on email and phone fields.

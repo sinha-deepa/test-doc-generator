@@ -1,0 +1,22 @@
+TEST CASE TEMPLATE
+
+Test Case ID:
+Title:
+Description:
+
+Preconditions:
+
+Test Steps:
+1.
+2.
+3.
+
+Test Data:
+
+Expected Result:
+
+Priority:
+High / Medium / Low
+
+Type:
+Functional / Negative / Edge / API / DB

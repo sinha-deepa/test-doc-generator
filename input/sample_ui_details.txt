@@ -1,0 +1,6 @@
+Profile screen contains:
+- Name input field
+- Email input field
+- Phone number field
+- Save button
+- Success and error messages
