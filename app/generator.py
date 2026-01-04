@@ -3,33 +3,66 @@ from dotenv import load_dotenv
 from openai import OpenAI, RateLimitError, AuthenticationError
 from app.prompt_builder import build_prompt
 
-
 # -------------------------
 # Load environment variables
 # -------------------------
 load_dotenv()
-
-API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=API_KEY)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 # -------------------------
-# Utility function to read files
+# Utility functions
 # -------------------------
-def read_file(path):
+def read_file_optional(path, default_text):
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            content = f.read().strip()
+            return content if content else default_text
+    return default_text
+
+
+def read_file_mandatory(path):
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Mandatory input missing: {path}")
     with open(path, "r") as f:
-        return f.read()
+        content = f.read().strip()
+        if not content:
+            raise ValueError(f"Mandatory input is empty: {path}")
+        return content
 
 
 # -------------------------
 # Read inputs
 # -------------------------
-jira = read_file("input_samples/sample_jira.txt")
-ui = read_file("input_samples/sample_ui_details.txt")
-db = read_file("input_samples/sample_db_schema.txt")
+try:
+    # MANDATORY
+    jira = read_file_mandatory("input/jira_description.txt")
 
-test_plan_template = read_file("templates/test_plan_template.txt")
-test_case_template = read_file("templates/test_case_template.txt")
+    # OPTIONAL
+    ui = read_file_optional(
+        "input/ui_details.txt",
+        "UI details not provided. Infer UI scenarios based on Jira description."
+    )
+
+    db = read_file_optional(
+        "input/db_schema.txt",
+        "Database details not provided. Infer DB validation scenarios."
+    )
+
+    test_plan_template = read_file_optional(
+        "templates/test_plan_template.txt",
+        "Generate a standard QA Test Plan using industry best practices."
+    )
+
+    test_case_template = read_file_optional(
+        "templates/test_case_template.txt",
+        "Generate detailed test cases with steps, data, and expected results."
+    )
+
+except (FileNotFoundError, ValueError) as e:
+    print("\n❌ INPUT ERROR")
+    print(str(e))
+    exit(1)
 
 
 # -------------------------
@@ -45,47 +78,31 @@ prompt = build_prompt(
 
 
 # -------------------------
-# Call LLM with safe handling
+# Call LLM safely
 # -------------------------
 try:
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
+        messages=[{"role": "user", "content": prompt}]
     )
     output = response.choices[0].message.content
 
 except RateLimitError:
     output = """
-ERROR: API QUOTA EXCEEDED
+ERROR: API quota exceeded.
 
-Your code and prompt are correct.
-Your OpenAI account currently has no usable quota.
+Use the SAME prompt in:
+- GitHub Copilot Chat
+- ChatGPT UI
 
-👉 Temporary workaround:
-- Use the SAME prompt in:
-  • ChatGPT UI
-  • GitHub Copilot Chat (inside IntelliJ)
-
-👉 Permanent fix:
-- Enable billing on OpenAI account (even $5 is enough)
+Jira input is mandatory; others are optional.
 """
 
 except AuthenticationError:
-    output = """
-ERROR: AUTHENTICATION FAILED
-
-Please check:
-- OPENAI_API_KEY value in .env file
-- No extra spaces or quotes
-"""
+    output = "ERROR: Invalid OpenAI API key."
 
 except Exception as e:
-    output = f"""
-UNEXPECTED ERROR OCCURRED:
-{str(e)}
-"""
+    output = f"Unexpected error occurred: {str(e)}"
 
 
 # -------------------------
@@ -93,14 +110,12 @@ UNEXPECTED ERROR OCCURRED:
 # -------------------------
 os.makedirs("output", exist_ok=True)
 
-with open("output/generated_test_doc.txt", "w") as f:
+with open("output/generated_test_doc.md", "w") as f:
     f.write(output)
 
 
 # -------------------------
-# Console feedback
+# Final message
 # -------------------------
-print("\n==============================")
-print(" TEST DOCUMENT GENERATION DONE ")
-print("==============================\n")
-print(output)
+print("\n✅ Test Document Generation Completed")
+print("📄 Output saved at: output/generated_test_doc.md")

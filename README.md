@@ -104,16 +104,24 @@ output/generated_test_doc.md
 ✅ Works without OpenAI API
 ✅ Best for learning, demos, and non-tech users
 ✅ Uses GitHub Copilot Chat inside IntelliJ
+=====================================
+✅HOW TO “RUN” THIS (Quick Reminder)
+
+Fill only input/jira_description.txt (mandatory)
+Fill others only if available
+Paste prompt into Copilot Chat
+Press Enter
+Save output
 
 🔹 Step 1: Fill input files
 
 Update these files in plain English:
 
-input/jira_description.txt
+input/jira_description.txt (Mandatory)
 
-input/ui_details.txt
+input/ui_details.txt (optional)
 
-input/db_schema.txt
+input/db_schema.txt (optional)
 
 🔹 Step 2: Open master prompt
 
@@ -124,31 +132,21 @@ prompts/test_doc_prompt.md
 🔹 Step 3: Replace placeholders
 
 Inside test_doc_prompt.md:
-
 Copy content from input files
-
 Paste into respective sections
-
 Copy templates from templates/ folder
-
 Ensure no <PASTE CONTENT> placeholders remain
-
 Save the file.
 
 🔹 Step 4: Execute using Copilot Chat
 
 Select ALL content in test_doc_prompt.md
-
 Copy (Cmd + A, Cmd + C)
 
 Open Copilot Chat in IntelliJ
-
 Mac: Cmd + Shift + I
-
 Windows: Ctrl + Shift + I
-
 Paste content
-
 Press Enter
 
 ➡️ This is the RUN action.
@@ -156,12 +154,8 @@ Press Enter
 🔹 Step 5: Save output
 
 Copy Copilot’s response
-
 Paste into:
-
 output/generated_test_doc.md
-
-
 Save.
 
 
